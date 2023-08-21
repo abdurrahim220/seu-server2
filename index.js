@@ -98,8 +98,10 @@ async function run() {
     });
 
     app.get('/events', async (req, res) => {
-
-      const result = await usersEventsCollection.find().toArray();
+      const limit = parseInt(req.query.limit) || 1;
+      const page = parseInt(req.query.page) || 1;
+      const skip = (page - 1) * limit;
+      const result = await usersEventsCollection.find().limit(limit).skip(skip).toArray();
       res.send(result)
     });
 
