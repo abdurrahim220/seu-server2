@@ -29,6 +29,7 @@ async function run() {
     const usersDataCollection = client.db('SEU').collection('data');
     const usersEventsCollection = client.db('SEU').collection('events');
     const usersNewsCollection = client.db('SEU').collection('news');
+    const usersJobsCollection = client.db('SEU').collection('jobs');
     const usersAuthorityCollection = client.db('SEU').collection('club_authority');
 
 
@@ -83,8 +84,8 @@ async function run() {
       res.send(result)
     });
 
+    //news api
     app.get('/news', async (req, res) => {
-
       const result = await usersNewsCollection.find().toArray();
       res.send(result)
     });
@@ -97,6 +98,8 @@ async function run() {
       res.send(result)
     });
 
+
+    // event api
     app.get('/events', async (req, res) => {
       const limit = parseInt(req.query.limit) || 1;
       const page = parseInt(req.query.page) || 1;
@@ -112,6 +115,18 @@ async function run() {
       const result = await usersEventsCollection.findOne(query);
       res.send(result)
     });
+
+    // jobs api 
+    app.get('/jobs',async(req,res)=>{
+      const result = await usersJobsCollection.find().toArray();
+      res.send(result);
+    })
+    app.get('/jobs/:id',async(req,res)=>{
+      const id = req.params.id;
+      const query = {_id: new ObjectId(id)}
+      const result = await usersJobsCollection.findOne(query)
+      res.send(result);
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
