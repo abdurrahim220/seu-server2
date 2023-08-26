@@ -6,7 +6,7 @@ const cors = require('cors');
 
 const port = process.env.PORT || 5000;
 
-const { MongoClient, ServerApiVersion,ObjectId } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.hncbqqn.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -24,6 +24,8 @@ async function run() {
     await client.connect();
 
 
+    const usersCollection = client.db('SEU').collection('users');
+    const cartsCollection = client.db('SEU').collection('carts');
     const usersMembersCollection = client.db('SEU').collection('members');
     const usersGalleryCollection = client.db('SEU').collection('gallery');
     const usersDataCollection = client.db('SEU').collection('data');
@@ -31,8 +33,54 @@ async function run() {
     const usersNewsCollection = client.db('SEU').collection('news');
     const usersJobsCollection = client.db('SEU').collection('jobs');
     const usersAuthorityCollection = client.db('SEU').collection('club_authority');
+    const androidCommunityCollection = client.db('SEU').collection('androidCommunity');
 
 
+    // user api
+    app.get('/users', async (req, res) => {
+      const result = await usersCollection.find().toArray();
+      res.send(result);
+    })
+
+    app.post('/users', async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email }
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        return res.send({ message: "user already exists" })
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result)
+    });
+
+    // cart api
+    // todo : jwtVerify 
+    //carts api collection 
+    app.get('/carts', async (req, res) => {
+      const email = req.query.email;
+      // console.log(email)
+      if (!email) {
+        res.send([])
+      }
+      const query = { email: email }
+      const result = await cartsCollection.find(query).toArray();
+      res.send(result)
+    })
+
+    app.post('/carts', async (req, res) => {
+      const item = req.body;
+      // console.log(item)
+      const result = await cartsCollection.insertOne(item);
+      res.send(result)
+    })
+    app.delete('/carts/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await cartsCollection.deleteOne(query)
+      res.send(result)
+    })
+
+    // member api
     app.get('/members', async (req, res) => {
       const limit = parseInt(req.query.limit) || 20;
       const page = parseInt(req.query.page) || 1;
@@ -42,7 +90,7 @@ async function run() {
     });
 
     // add members
-    app.post('/addMembers',async (req,res)=>{
+    app.post('/addMembers', async (req, res) => {
       const addInfo = req.body;
       // console.log(addInfo)
       const result = await usersMembersCollection.insertOne(addInfo);
@@ -84,6 +132,20 @@ async function run() {
       res.send(result)
     });
 
+    // android api collection 
+
+    app.get('/android', async (req, res) => {
+      const result = await androidCommunityCollection.find().toArray();
+      res.send(result);
+    })
+    app.get('/android/:id', async (req, res) => {
+      const id = req.params.id;
+      // console.log(id)
+      const query = { _id: new ObjectId(id) }
+      const result = await androidCommunityCollection.findOne(query);
+      res.send(result)
+    })
+
     //news api
     app.get('/news', async (req, res) => {
       const result = await usersNewsCollection.find().toArray();
@@ -99,10 +161,10 @@ async function run() {
     });
 
 
-    // event api
+    // event api with pagination
     app.get('/events', async (req, res) => {
-      const limit = parseInt(req.query.limit) || 1;
-      const page = parseInt(req.query.page) || 1;
+      const limit = parseInt(req.query.limit) || 4
+      const page = parseInt(req.query.page) || 1
       const skip = (page - 1) * limit;
       const result = await usersEventsCollection.find().limit(limit).skip(skip).toArray();
       res.send(result)
@@ -117,13 +179,13 @@ async function run() {
     });
 
     // jobs api 
-    app.get('/jobs',async(req,res)=>{
+    app.get('/jobs', async (req, res) => {
       const result = await usersJobsCollection.find().toArray();
       res.send(result);
     })
-    app.get('/jobs/:id',async(req,res)=>{
+    app.get('/jobs/:id', async (req, res) => {
       const id = req.params.id;
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const result = await usersJobsCollection.findOne(query)
       res.send(result);
     })
