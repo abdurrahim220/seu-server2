@@ -3,6 +3,7 @@ require('dotenv').config()
 const express = require("express")
 const app = express();
 const cors = require('cors');
+const SSLCommerzPayment = require('sslcommerz-lts')
 
 const port = process.env.PORT || 5000;
 
@@ -18,6 +19,11 @@ const client = new MongoClient(uri, {
   }
 });
 
+const store_id = process.env.Store_ID
+const store_passwd = process.env.Store_Password
+const is_live = false
+
+
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
@@ -25,6 +31,7 @@ async function run() {
 
 
     const usersCollection = client.db('SEU').collection('users');
+    const usersOrderCollection = client.db('SEU').collection('order');
     const cartsCollection = client.db('SEU').collection('carts');
     const usersMembersCollection = client.db('SEU').collection('members');
     const usersGalleryCollection = client.db('SEU').collection('gallery');
@@ -34,6 +41,7 @@ async function run() {
     const usersJobsCollection = client.db('SEU').collection('jobs');
     const usersAuthorityCollection = client.db('SEU').collection('club_authority');
     const androidCommunityCollection = client.db('SEU').collection('androidCommunity');
+
 
 
     // user api
@@ -97,6 +105,13 @@ async function run() {
       res.send(result);
     })
 
+    // delete member
+    app.delete('/deleteMember/:id', async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) }
+      const result = await usersMembersCollection.deleteOne(query)
+      res.send(result)
+    })
     // member search 
     app.get('/members/:text', async (req, res) => {
       let searchData = req.params.text;
@@ -111,6 +126,7 @@ async function run() {
       }).toArray();
       res.send(result);
     });
+
 
 
     app.get('/authority', async (req, res) => {
@@ -189,6 +205,88 @@ async function run() {
       const result = await usersJobsCollection.findOne(query)
       res.send(result);
     })
+
+
+    app.post('/order', async (req, res) => {
+
+      const tran_id = new ObjectId().toString();
+
+      // const product = await cartsCollection.findOne({_id:new ObjectId(req.body.productId)})
+
+      // console.log(product)
+      const order = req.body;
+      // console.log(order)
+
+      const data = {
+        total_amount: order.price,
+        currency: "BDT",
+        tran_id: tran_id, // use unique tran_id for each api call
+        success_url: 'http://localhost:3030/success',
+        fail_url: 'http://localhost:3030/fail',
+        cancel_url: 'http://localhost:3030/cancel',
+        ipn_url: 'http://localhost:3030/ipn',
+        shipping_method: 'Courier',
+        product_name: 'Computer.',
+        product_category: 'Electronic',
+        product_profile: 'general',
+        cus_name: "",
+        cus_email: order.email,
+        cus_add1: "",
+        cus_add2: 'Dhaka',
+        cus_city: 'Dhaka',
+        cus_state: 'Dhaka',
+        cus_postcode: "",
+        cus_country: 'Bangladesh',
+        cus_phone: '01711111111',
+        cus_fax: '01711111111',
+        ship_name: 'Customer Name',
+        ship_add1: 'Dhaka',
+        ship_add2: 'Dhaka',
+        ship_city: 'Dhaka',
+        ship_state: 'Dhaka',
+        ship_postcode: 1000,
+        ship_country: 'Bangladesh',
+      };
+      // console.log(data)
+      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live)
+      sslcz.init(data).then(apiResponse => {
+        // Redirect the user to payment gateway
+        let GatewayPageURL = apiResponse.GatewayPageURL
+        res.send({ url: GatewayPageURL })
+        const finalOrder = {
+
+          transitionId: tran_id,
+
+        }
+
+        const result = usersOrderCollection.insertOne(finalOrder)
+        console.log('Redirecting to: ', GatewayPageURL)
+      });
+
+
+
+
+      app.post('/payment/success/:tranId', async (req, rew) => {
+        // console.log(req.params.tranId)
+        const result = await usersOrderCollection.updateOne(
+          {
+            transitionId: req.params.tranId
+          },
+          {
+            $set: {
+              paidStatus: true,
+            }
+          }
+
+        )
+        if (result.modifiedCount > 0) {
+          res.redirect(`http://localhost:5173/payment/success/${req.params.tranId}`)
+
+        }
+      })
+
+    })
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
