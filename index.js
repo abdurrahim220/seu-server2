@@ -154,11 +154,25 @@ async function run() {
       const result = await androidCommunityCollection.find().toArray();
       res.send(result);
     })
+    app.post('/addAndroid', async (req, res) => {
+      const addInfo = req.body;
+      // console.log(addInfo)
+      const result = await androidCommunityCollection.insertOne(addInfo);
+      res.send(result);
+    })
+
     app.get('/android/:id', async (req, res) => {
       const id = req.params.id;
       // console.log(id)
       const query = { _id: new ObjectId(id) }
       const result = await androidCommunityCollection.findOne(query);
+      res.send(result)
+    })
+    app.get('/deleteAndroid/:id', async (req, res) => {
+      const id = req.params.id;
+      // console.log(id)
+      const query = { _id: new ObjectId(id) }
+      const result = await androidCommunityCollection.deleteOne(query);
       res.send(result)
     })
 
