@@ -108,23 +108,30 @@ async function run() {
     // delete member
     app.delete('/deleteMember/:id', async (req, res) => {
       const id = req.params.id;
+      console.log(id)
       const query = { _id: new ObjectId(id) }
       const result = await usersMembersCollection.deleteOne(query)
-      res.send(result)
+      console.log(result)
+      // res.send(result)
     })
     // member search 
     app.get('/members/:text', async (req, res) => {
-      let searchData = req.params.text;
-      // console.log(searchData)
-      const result = await usersMembersCollection.find({
-        $or: [
-          { name: { $regex: searchData, $options: 'i' } },
-          { batch: { $regex: searchData, $options: 'i' } },
-          { role: { $regex: searchData, $options: 'i' } },
-          { department: { $regex: searchData, $options: 'i' } },
-        ]
-      }).toArray();
-      res.send(result);
+      try {
+        let searchData = req.params.text;
+        // console.log(searchData)
+        const result = await usersMembersCollection.find({
+          $or: [
+            { name: { $regex: searchData, $options: 'i' } },
+            { batch: { $regex: searchData, $options: 'i' } },
+            { role: { $regex: searchData, $options: 'i' } },
+            { department: { $regex: searchData, $options: 'i' } },
+          ]
+        }).toArray();
+        res.send(result);
+      } catch (error) {
+        // console.error("Error:", error);
+        res.status(500).json({ error: "Internal server error" });
+      }
     });
 
 
@@ -154,6 +161,8 @@ async function run() {
       const result = await androidCommunityCollection.find().toArray();
       res.send(result);
     })
+
+
     app.post('/addAndroid', async (req, res) => {
       const addInfo = req.body;
       // console.log(addInfo)
@@ -162,12 +171,23 @@ async function run() {
     })
 
     app.get('/android/:id', async (req, res) => {
-      const id = req.params.id;
-      // console.log(id)
-      const query = { _id: new ObjectId(id) }
-      const result = await androidCommunityCollection.findOne(query);
-      res.send(result)
+      try {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await androidCommunityCollection.findOne(query);
+
+        if (result) {
+          res.send(result);
+        } else {
+
+          res.status(404).send('Not Found');
+        }
+      } catch (error) {
+        res.status(500).send('Internal Server Error');
+      }
     })
+
+
     app.get('/deleteAndroid/:id', async (req, res) => {
       const id = req.params.id;
       // console.log(id)
