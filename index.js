@@ -163,7 +163,7 @@ async function run() {
     })
 
 
-    app.post('/addAndroid', async (req, res) => {
+    app.post('/android', async (req, res) => {
       const addInfo = req.body;
       // console.log(addInfo)
       const result = await androidCommunityCollection.insertOne(addInfo);
@@ -187,8 +187,7 @@ async function run() {
       }
     })
 
-
-    app.get('/deleteAndroid/:id', async (req, res) => {
+    app.delete('/android/:id', async (req, res) => {
       const id = req.params.id;
       // console.log(id)
       const query = { _id: new ObjectId(id) }
